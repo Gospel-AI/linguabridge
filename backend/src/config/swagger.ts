@@ -4,12 +4,12 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'TaskBridge API Documentation',
+      title: 'LinguaBridge API Documentation',
       version: '1.0.0',
-      description: 'Global Micro Task Marketplace - API documentation for clients and workers',
+      description: 'LLM Annotation Platform - API documentation for clients and annotators',
       contact: {
-        name: 'TaskBridge Support',
-        email: 'support@taskbridge.com',
+        name: 'LinguaBridge Support',
+        email: 'support@linguabridge.com',
       },
     },
     servers: [
@@ -18,7 +18,7 @@ const options: swaggerJsdoc.Options = {
         description: 'Development server',
       },
       {
-        url: 'https://api.taskbridge.com',
+        url: 'https://api.linguabridge.com',
         description: 'Production server',
       },
     ],

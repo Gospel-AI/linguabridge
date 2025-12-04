@@ -18,7 +18,7 @@ export const Navbar = memo(function Navbar() {
           <div className="flex">
             <Link to="/" className="flex items-center">
               <span className="text-2xl font-bold text-primary-600">
-                TaskBridge
+                LinguaBridge
               </span>
             </Link>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">

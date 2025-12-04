@@ -17,12 +17,6 @@ const EditTask = lazy(() => import('./pages/EditTask').then(m => ({ default: m.E
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })))
 const WorkerOnboarding = lazy(() => import('./pages/WorkerOnboarding').then(m => ({ default: m.WorkerOnboarding })))
 
-// Domain pages
-const TranslationDomain = lazy(() => import('./pages/domains/TranslationDomain').then(m => ({ default: m.TranslationDomain })))
-const AIVerificationDomain = lazy(() => import('./pages/domains/AIVerificationDomain').then(m => ({ default: m.AIVerificationDomain })))
-const PhysicalDataDomain = lazy(() => import('./pages/domains/PhysicalDataDomain').then(m => ({ default: m.PhysicalDataDomain })))
-const AppTestingDomain = lazy(() => import('./pages/domains/AppTestingDomain').then(m => ({ default: m.AppTestingDomain })))
-
 function App() {
   return (
     <ErrorBoundary>
@@ -37,10 +31,6 @@ function App() {
           }>
             <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/domains/translation" element={<TranslationDomain />} />
-            <Route path="/domains/ai-verification" element={<AIVerificationDomain />} />
-            <Route path="/domains/physical-data" element={<PhysicalDataDomain />} />
-            <Route path="/domains/app-testing" element={<AppTestingDomain />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/tasks/:id" element={<TaskDetail />} />
             <Route
