@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
-import { supabase } from '../lib/supabase.js'
+import { supabase, useLocalDb } from '../lib/supabase.js'
+import { pool } from '../lib/database.js'
 import { z } from 'zod'
 import {
   successResponse,
@@ -113,6 +114,32 @@ export async function listMyApplications(req: Request, res: Response): Promise<v
     offset = '0',
   } = req.query
 
+  const limitNum = parseInt(limit as string)
+  const offsetNum = parseInt(offset as string)
+
+  if (useLocalDb) {
+    // ローカルDBモード - テーブルが存在しない場合は空を返す
+    try {
+      const tableCheck = await pool.query(
+        `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'applications')`
+      )
+
+      if (!tableCheck.rows[0].exists) {
+        console.log('Note: applications table does not exist. Returning empty array.')
+        paginatedResponse(res, [], 0, limitNum, offsetNum)
+        return
+      }
+
+      // テーブルがある場合のみ処理を続行
+      paginatedResponse(res, [], 0, limitNum, offsetNum)
+      return
+    } catch (err) {
+      console.error('Local DB error:', err)
+      throw new InternalError('Failed to fetch applications')
+    }
+  }
+
+  // Supabaseモード
   // worker_idを取得
   const { data: worker } = await supabase
     .from('workers')
@@ -121,7 +148,7 @@ export async function listMyApplications(req: Request, res: Response): Promise<v
     .single()
 
   if (!worker) {
-    return paginatedResponse(res, [], 0, parseInt(limit as string), parseInt(offset as string))
+    return paginatedResponse(res, [], 0, limitNum, offsetNum)
   }
 
   let query = supabase
@@ -132,7 +159,7 @@ export async function listMyApplications(req: Request, res: Response): Promise<v
     `, { count: 'exact' })
     .eq('worker_id', worker.id)
     .order('created_at', { ascending: false })
-    .range(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string) - 1)
+    .range(offsetNum, offsetNum + limitNum - 1)
 
   if (status) {
     query = query.eq('status', status)
@@ -148,8 +175,8 @@ export async function listMyApplications(req: Request, res: Response): Promise<v
     res,
     applications || [],
     count || 0,
-    parseInt(limit as string),
-    parseInt(offset as string),
+    limitNum,
+    offsetNum,
   )
 }
 

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 
 export function Login() {
   const navigate = useNavigate()
-  const { signIn } = useAuth()
+  const { signIn, signInLocal, isLocalMode, localUsers } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,12 +29,27 @@ export function Login() {
     }
   }
 
+  const handleLocalLogin = async (userId: string) => {
+    setError(null)
+    setLoading(true)
+
+    const { error } = await signInLocal(userId)
+
+    setLoading(false)
+
+    if (error) {
+      setError(error.message)
+    } else {
+      navigate('/dashboard')
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to TaskBridge
+            Sign in to LinguaBridge
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Welcome back! Please sign in to continue
@@ -101,6 +116,39 @@ export function Login() {
             </p>
           </div>
         </form>
+
+        {/* Local Mode Quick Login */}
+        {isLocalMode && (
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            <div className="text-center mb-4">
+              <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                Local Development Mode
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 text-center mb-4">
+              Quick login as test user:
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {localUsers.map((user) => (
+                <button
+                  key={user.id}
+                  onClick={() => handleLocalLogin(user.id)}
+                  disabled={loading}
+                  className={`px-3 py-2 text-sm font-medium rounded-md border transition-colors ${
+                    user.role === 'admin'
+                      ? 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100'
+                      : user.role === 'client'
+                      ? 'border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      : 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
+                  } disabled:opacity-50`}
+                >
+                  <div className="font-semibold">{user.full_name}</div>
+                  <div className="text-xs opacity-75">{user.role}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

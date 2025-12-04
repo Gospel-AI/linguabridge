@@ -55,7 +55,7 @@ export function SignUp() {
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Join TaskBridge and start working or posting tasks
+            Join LinguaBridge and start annotating or posting projects
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

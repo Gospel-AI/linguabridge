@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { supabase } from '../../lib/supabase'
+import { annotationsApi } from '../../services'
 import type { AnnotationProject, AnnotationType } from '../../types/database'
 
 const TYPE_LABELS: Record<AnnotationType, { label: string; color: string }> = {
@@ -31,18 +31,8 @@ export const ProjectList = memo(function ProjectList() {
       try {
         setLoading(true)
 
-        let query = supabase
-          .from('annotation_projects')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (filter === 'active') {
-          query = query.eq('status', 'active')
-        }
-
-        const { data, error } = await query
-
-        if (error) throw error
+        const params = filter === 'active' ? { status: 'active' } : undefined
+        const { projects: data } = await annotationsApi.listProjects(params)
         setProjects(data || [])
 
       } catch (err) {
@@ -114,10 +104,12 @@ export const ProjectList = memo(function ProjectList() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => {
-              const typeInfo = TYPE_LABELS[project.annotation_type as AnnotationType]
-              const statusInfo = STATUS_LABELS[project.status]
-              const progress = project.total_tasks > 0
-                ? Math.round((project.completed_tasks / project.total_tasks) * 100)
+              const typeInfo = TYPE_LABELS[project.annotation_type as AnnotationType] || { label: 'Unknown', color: 'bg-gray-100 text-gray-800' }
+              const statusInfo = STATUS_LABELS[project.status] || { label: 'Unknown', color: 'bg-gray-100 text-gray-800' }
+              const totalTasks = project.total_tasks ?? 0
+              const completedTasks = project.completed_tasks ?? 0
+              const progress = totalTasks > 0
+                ? Math.round((completedTasks / totalTasks) * 100)
                 : 0
 
               return (
@@ -156,7 +148,7 @@ export const ProjectList = memo(function ProjectList() {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-500">Progress</span>
                         <span className="font-medium text-gray-900">
-                          {project.completed_tasks} / {project.total_tasks}
+                          {completedTasks} / {totalTasks}
                         </span>
                       </div>
                       <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -171,7 +163,7 @@ export const ProjectList = memo(function ProjectList() {
                     <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                       <span className="text-sm text-gray-500">Per task</span>
                       <span className="text-lg font-semibold text-primary-600">
-                        ${project.price_per_task.toFixed(2)}
+                        ${Number(project.price_per_task ?? 0).toFixed(2)}
                       </span>
                     </div>
                   </div>

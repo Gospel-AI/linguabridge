@@ -18,7 +18,7 @@ import type {
   TranslationValidationConfig,
   AnnotationResult
 } from '../../types/database'
-import { supabase } from '../../lib/supabase'
+import { annotationsApi } from '../../services'
 
 type TaskWithData = Omit<AnnotationTask, 'data'> & {
   data: Record<string, unknown>
@@ -27,7 +27,7 @@ type TaskWithData = Omit<AnnotationTask, 'data'> & {
 export const AnnotationWorkspace = memo(function AnnotationWorkspace() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
-  
+
   const [project, setProject] = useState<AnnotationProject | null>(null)
   const [currentTask, setCurrentTask] = useState<TaskWithData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -44,34 +44,18 @@ export const AnnotationWorkspace = memo(function AnnotationWorkspace() {
         setLoading(true)
         setError(null)
 
-        // Load project
-        const { data: projectData, error: projectError } = await supabase
-          .from('annotation_projects')
-          .select('*')
-          .eq('id', projectId)
-          .single()
-
-        if (projectError) throw projectError
+        // Load project via API
+        const projectData = await annotationsApi.getProject(projectId)
         setProject(projectData)
 
-        // Load stats
-        const { count: totalCount } = await supabase
-          .from('annotation_tasks')
-          .select('*', { count: 'exact', head: true })
-          .eq('project_id', projectId)
-
-        const { count: completedCount } = await supabase
-          .from('annotation_tasks')
-          .select('*', { count: 'exact', head: true })
-          .eq('project_id', projectId)
-          .eq('status', 'completed')
-
+        // Load stats via API
+        const statsData = await annotationsApi.getProjectStats(projectId)
         setStats({
-          total: totalCount || 0,
-          completed: completedCount || 0
+          total: statsData.total || 0,
+          completed: statsData.completed || 0
         })
 
-        // Load next available task
+        // Load next available task via API
         await loadNextTask(projectId)
 
       } catch (err) {
@@ -86,20 +70,8 @@ export const AnnotationWorkspace = memo(function AnnotationWorkspace() {
   }, [projectId])
 
   const loadNextTask = async (projId: string) => {
-    const { data: taskData, error: taskError } = await supabase
-      .from('annotation_tasks')
-      .select('*')
-      .eq('project_id', projId)
-      .eq('status', 'pending')
-      .order('sequence_number', { ascending: true })
-      .limit(1)
-      .single()
-
-    if (taskError && taskError.code !== 'PGRST116') {
-      throw taskError
-    }
-
-    setCurrentTask(taskData as TaskWithData | null)
+    const task = await annotationsApi.getNextTask(projId)
+    setCurrentTask(task as TaskWithData | null)
   }
 
   const handleSubmit = async (annotation: AnnotationResult, timeSpent: number) => {
@@ -108,23 +80,8 @@ export const AnnotationWorkspace = memo(function AnnotationWorkspace() {
     try {
       setSubmitting(true)
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      // Submit annotation
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: annotationError } = await (supabase as any)
-        .from('annotations')
-        .insert({
-          task_id: currentTask.id,
-          annotator_id: user.id,
-          annotation,
-          time_spent_seconds: timeSpent,
-          status: 'submitted'
-        })
-
-      if (annotationError) throw annotationError
+      // Submit annotation via API
+      await annotationsApi.submitAnnotation(currentTask.id, annotation, timeSpent)
 
       // Update stats
       setStats(prev => ({ ...prev, completed: prev.completed + 1 }))

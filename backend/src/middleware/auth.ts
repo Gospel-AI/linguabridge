@@ -1,6 +1,15 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-import { supabase } from '../lib/supabase.js'
+import { supabase, useLocalDb } from '../lib/supabase.js'
+import { pool } from '../lib/database.js'
+
+// ローカルモード用のテストユーザー
+const LOCAL_USERS = [
+  { id: '11111111-1111-1111-1111-111111111111', email: 'admin@linguabridge.com', full_name: 'Admin User', role: 'admin' },
+  { id: '22222222-2222-2222-2222-222222222222', email: 'client@example.com', full_name: 'Test Client', role: 'client' },
+  { id: '33333333-3333-3333-3333-333333333333', email: 'annotator1@example.com', full_name: 'John Annotator', role: 'annotator' },
+  { id: '44444444-4444-4444-4444-444444444444', email: 'annotator2@example.com', full_name: 'Jane Annotator', role: 'annotator' },
+]
 
 // Extend Express Request type to include user
 declare global {
@@ -36,6 +45,38 @@ export async function authenticate(
     }
 
     const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+
+    // ローカルモードトークンの処理
+    if (token.startsWith('local_')) {
+      if (!useLocalDb) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Local tokens not allowed in production',
+        })
+        return
+      }
+
+      const localUserId = token.substring(6) // Remove 'local_' prefix
+      const localUser = LOCAL_USERS.find(u => u.id === localUserId)
+
+      if (!localUser) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid local user',
+        })
+        return
+      }
+
+      // ローカルユーザー情報をrequestに添付
+      req.user = {
+        id: localUser.id,
+        email: localUser.email,
+        role: localUser.role,
+      }
+
+      next()
+      return
+    }
 
     // JWT検証（署名確認）
     let userId: string
@@ -114,6 +155,19 @@ export function requireRole(...allowedRoles: string[]) {
         error: 'Unauthorized',
         message: 'Authentication required',
       })
+      return
+    }
+
+    // ローカルモードの場合、req.userから直接roleを取得
+    if (useLocalDb && req.user.role) {
+      if (!allowedRoles.includes(req.user.role)) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: 'Insufficient permissions',
+        })
+        return
+      }
+      next()
       return
     }
 

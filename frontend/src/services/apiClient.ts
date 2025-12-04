@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase, useLocalMode } from '../lib/supabase'
 
 /**
  * APIクライアント基底クラス
@@ -15,8 +15,23 @@ class ApiClient {
    * 現在のセッションからアクセストークンを取得
    */
   private async getAccessToken(): Promise<string | null> {
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token || null
+    // ローカルモードの場合はlocalStorageからユーザーIDを取得
+    if (useLocalMode) {
+      const localUserId = localStorage.getItem('linguabridge_local_user')
+      if (localUserId) {
+        // ローカルモード用の特別なトークン形式
+        return `local_${localUserId}`
+      }
+      return null
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      return session?.access_token || null
+    } catch (error) {
+      console.error('Failed to get access token:', error)
+      return null
+    }
   }
 
   /**

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { supabase } from '../lib/supabase'
+import { tasksApi } from '../services'
 import { TaskCard } from '../components/TaskCard'
 
 interface Task {
@@ -37,14 +37,7 @@ export function Tasks() {
   const fetchTasks = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('status', 'published')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
+      const { tasks: data } = await tasksApi.list({ status: 'published' })
       setTasks(data || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tasks')

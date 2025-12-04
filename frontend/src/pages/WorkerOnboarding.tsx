@@ -142,7 +142,7 @@ export function WorkerOnboarding() {
             Worker Onboarding
           </h1>
           <p className="text-gray-600">
-            Complete your profile to start earning with TaskBridge
+            Complete your profile to start earning with LinguaBridge
           </p>
         </div>
 

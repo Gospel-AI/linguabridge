@@ -1,11 +1,6 @@
 import { Request, Response } from 'express';
-import { createClient } from '@supabase/supabase-js';
+import { supabase, useLocalDb } from '../lib/supabase.js';
 import { NotFoundError, ForbiddenError, BadRequestError, InternalError } from '../utils/errors.js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
 
 /**
  * Create a report for a problematic task

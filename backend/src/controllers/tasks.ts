@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
-import { supabase } from '../lib/supabase.js'
+import { supabase, useLocalDb } from '../lib/supabase.js'
+import { pool } from '../lib/database.js'
 import { z } from 'zod'
 import {
   successResponse,
@@ -40,11 +41,70 @@ export async function listTasks(req: Request, res: Response): Promise<void> {
     offset = '0',
   } = req.query
 
+  const limitNum = parseInt(limit as string)
+  const offsetNum = parseInt(offset as string)
+
+  if (useLocalDb) {
+    // ローカルDBモード
+    try {
+      // まずテーブルが存在するか確認
+      const tableCheck = await pool.query(
+        `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'tasks')`
+      )
+
+      if (!tableCheck.rows[0].exists) {
+        // tasksテーブルが存在しない場合は空の配列を返す
+        console.log('Note: tasks table does not exist. Returning empty array.')
+        paginatedResponse(res, [], 0, limitNum, offsetNum)
+        return
+      }
+
+      let whereClause = 'WHERE 1=1'
+      const params: any[] = []
+      let paramIndex = 1
+
+      if (status) {
+        whereClause += ` AND t.status = $${paramIndex++}`
+        params.push(status)
+      }
+      if (category) {
+        whereClause += ` AND t.category = $${paramIndex++}`
+        params.push(category)
+      }
+
+      // カウント取得
+      const countResult = await pool.query(
+        `SELECT COUNT(*) FROM tasks t ${whereClause}`,
+        params
+      )
+      const count = parseInt(countResult.rows[0].count)
+
+      // タスク取得（creator情報を結合）
+      const result = await pool.query(
+        `SELECT t.*,
+                json_build_object('id', u.id, 'email', u.email, 'full_name', u.full_name) as creator
+         FROM tasks t
+         LEFT JOIN users u ON t.creator_id = u.id
+         ${whereClause}
+         ORDER BY t.created_at DESC
+         LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+        [...params, limitNum, offsetNum]
+      )
+
+      paginatedResponse(res, result.rows, count, limitNum, offsetNum)
+      return
+    } catch (err) {
+      console.error('Local DB error:', err)
+      throw new InternalError('Failed to fetch tasks')
+    }
+  }
+
+  // Supabaseモード
   let query = supabase
     .from('tasks')
     .select('*, creator:users!tasks_creator_id_fkey(id, email, full_name)', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .range(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string) - 1)
+    .range(offsetNum, offsetNum + limitNum - 1)
 
   if (status) {
     query = query.eq('status', status)
@@ -64,8 +124,8 @@ export async function listTasks(req: Request, res: Response): Promise<void> {
     res,
     tasks || [],
     count || 0,
-    parseInt(limit as string),
-    parseInt(offset as string),
+    limitNum,
+    offsetNum,
   )
 }
 
@@ -75,6 +135,45 @@ export async function listTasks(req: Request, res: Response): Promise<void> {
  */
 export async function getTask(req: Request, res: Response): Promise<void> {
   const { id } = req.params
+
+  if (useLocalDb) {
+    try {
+      const result = await pool.query(
+        `SELECT t.*,
+                json_build_object('id', u.id, 'email', u.email, 'full_name', u.full_name) as creator
+         FROM tasks t
+         LEFT JOIN users u ON t.creator_id = u.id
+         WHERE t.id = $1`,
+        [id]
+      )
+
+      if (result.rows.length === 0) {
+        throw new NotFoundError('Task not found')
+      }
+
+      // applications取得
+      const appsResult = await pool.query(
+        `SELECT a.id, a.status, a.created_at,
+                json_build_object('id', u.id, 'email', u.email, 'full_name', u.full_name) as worker
+         FROM applications a
+         LEFT JOIN users u ON a.worker_id = u.id
+         WHERE a.task_id = $1`,
+        [id]
+      )
+
+      const task = {
+        ...result.rows[0],
+        applications: appsResult.rows
+      }
+
+      successResponse(res, task)
+      return
+    } catch (err) {
+      if (err instanceof NotFoundError) throw err
+      console.error('Local DB error:', err)
+      throw new InternalError('Failed to fetch task')
+    }
+  }
 
   const { data: task, error } = await supabase
     .from('tasks')

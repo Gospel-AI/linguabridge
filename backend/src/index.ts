@@ -8,9 +8,11 @@ import tasksRoutes from './routes/tasks.js'
 import applicationsRoutes from './routes/applications.js'
 import workersRoutes from './routes/workers.js'
 import reportsRoutes from './routes/reports.js'
+import annotationsRoutes from './routes/annotations.js'
 import { validateEnvironment } from './utils/validateEnv.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { swaggerSpec } from './config/swagger.js'
+import { testConnection as testDbConnection } from './lib/database.js'
 
 // 環境変数の読み込み
 dotenv.config()
@@ -32,18 +34,20 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // ヘルスチェック
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
+  const dbStatus = envConfig.USE_LOCAL_DB ? await testDbConnection() : true
   res.json({
-    status: 'ok',
+    status: dbStatus ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+    database: envConfig.USE_LOCAL_DB ? (dbStatus ? 'connected' : 'disconnected') : 'supabase',
   })
 })
 
 // ルートエンドポイント
 app.get('/', (_req: Request, res: Response) => {
   res.json({
-    message: 'TaskBridge API',
+    message: 'LinguaBridge API',
     version: '0.1.0',
     documentation: '/api/docs',
   })
@@ -52,7 +56,7 @@ app.get('/', (_req: Request, res: Response) => {
 // Swagger API ドキュメント
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'TaskBridge API Documentation',
+  customSiteTitle: 'LinguaBridge API Documentation',
 }))
 
 // APIルート
@@ -60,6 +64,7 @@ app.use('/api/tasks', tasksRoutes)
 app.use('/api/applications', applicationsRoutes)
 app.use('/api/workers', workersRoutes)
 app.use('/api/reports', reportsRoutes)
+app.use('/api/annotations', annotationsRoutes)
 
 // 404ハンドラー
 app.use((_req: Request, res: Response) => {
@@ -73,7 +78,22 @@ app.use((_req: Request, res: Response) => {
 app.use(errorHandler)
 
 // サーバー起動
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`)
-})
+async function startServer() {
+  // ローカルDBモードの場合は接続テスト
+  if (envConfig.USE_LOCAL_DB) {
+    const connected = await testDbConnection()
+    if (!connected) {
+      console.error('❌ Failed to connect to database. Server starting anyway...')
+    }
+  }
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`)
+    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`)
+    if (envConfig.USE_LOCAL_DB) {
+      console.log(`🗄️  Database: Local PostgreSQL`)
+    }
+  })
+}
+
+startServer()

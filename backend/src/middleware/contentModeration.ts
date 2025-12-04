@@ -1,10 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+import { supabase, useLocalDb } from '../lib/supabase.js';
+import { query } from '../lib/database.js';
 
 interface ModerationResult {
   allowed: boolean;
@@ -240,6 +236,12 @@ export class ContentModerationService {
     userId: string
   ): Promise<void> {
     try {
+      if (useLocalDb) {
+        // ローカルDBモード - ログのみ（テーブルがない場合はスキップ）
+        console.log(`[Moderation] Task: ${taskId}, Action: ${result.action}, Flags: ${result.flags.join(', ')}`);
+        return;
+      }
+
       if (result.action === 'HOLD_FOR_REVIEW' || result.action === 'BLOCK') {
         await supabase.from('moderation_queue').insert({
           task_id: taskId,
