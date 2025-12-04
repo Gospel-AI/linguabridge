@@ -17,6 +17,10 @@ const EditTask = lazy(() => import('./pages/EditTask').then(m => ({ default: m.E
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })))
 const WorkerOnboarding = lazy(() => import('./pages/WorkerOnboarding').then(m => ({ default: m.WorkerOnboarding })))
 
+// Annotation pages
+const ProjectList = lazy(() => import('./pages/annotation/ProjectList').then(m => ({ default: m.ProjectList })))
+const AnnotationWorkspace = lazy(() => import('./pages/annotation/AnnotationWorkspace').then(m => ({ default: m.AnnotationWorkspace })))
+
 function App() {
   return (
     <ErrorBoundary>
@@ -72,6 +76,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <WorkerOnboarding />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <ProjectList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/annotate/:projectId"
+              element={
+                <ProtectedRoute>
+                  <AnnotationWorkspace />
                 </ProtectedRoute>
               }
             />
