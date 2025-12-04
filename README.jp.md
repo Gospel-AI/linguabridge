@@ -49,7 +49,7 @@ LinguaBridgeは以下のユーザー向けに設計されたLLMアノテーシ�
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/your-org/linguabridge.git
+git clone https://github.com/Gospel-AI/linguabridge.git
 cd linguabridge
 
 # フロントエンドセットアップ
@@ -130,5 +130,5 @@ MITライセンス - 詳細は[LICENSE](LICENSE)を参照
 
 ## お問い合わせ
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/linguabridge/issues)
+- **Issues**: [GitHub Issues](https://github.com/Gospel-AI/linguabridge/issues)
 - **メール**: [連絡先メール]

@@ -8,7 +8,7 @@
 
 ### フェーズ1: プロジェクトセットアップ
 - [x] TaskBridgeからフォーク
-- [x] GitHubリポジトリ作成 (kazoo0104/linguabridge)
+- [x] GitHubリポジトリ作成 (Gospel-AI/linguabridge)
 - [x] ブランディング更新 (LinguaBridge)
 - [x] TaskBridge固有ファイルのクリーンアップ (46ファイル削除)
 - [x] package.json名の更新

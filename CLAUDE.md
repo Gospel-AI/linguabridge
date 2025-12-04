@@ -312,7 +312,7 @@ linguabridge/
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/linguabridge.git
+git clone https://github.com/Gospel-AI/linguabridge.git
 cd linguabridge
 
 # Frontend

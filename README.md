@@ -49,7 +49,7 @@ LinguaBridge is an LLM annotation platform designed for:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/linguabridge.git
+git clone https://github.com/Gospel-AI/linguabridge.git
 cd linguabridge
 
 # Frontend setup
@@ -130,5 +130,5 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ## Contact
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/linguabridge/issues)
+- **Issues**: [GitHub Issues](https://github.com/Gospel-AI/linguabridge/issues)
 - **Email**: [contact email]
